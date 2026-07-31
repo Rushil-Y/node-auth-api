@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const { users } = require("../models/userModel");
+const User = require("../models/userModel");
 
 const registerUser = async (req, res) => {
   const { username, password } = req.body;
@@ -8,8 +8,11 @@ const registerUser = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Store user
-    users.push({ username, password: hashedPassword });
+    // Store user in MongoDB
+    await User.create({
+      username,
+      password: hashedPassword,
+    });
 
     res.json({ message: "User registered Successfully" });
   } catch (error) {
@@ -20,13 +23,13 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
 
-  const user = users.find((u) => u.username === username);
-
-  if (!user) {
-    return res.status(400).json({ message: "User not found" });
-  }
-
   try {
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (isMatch) {
