@@ -30,4 +30,7 @@ app.get("/", (req, res) => {
 // Auth Routes
 app.use("/auth", authRoutes);
 
+const errorMiddleware = require("./src/middleware/errorMiddleware");
+app.use(errorMiddleware);
+
 module.exports = app;
