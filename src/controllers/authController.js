@@ -1,7 +1,7 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const User = require("../models/userModel");
-const { registerUserService } = require("../services/authService");
+const {
+  registerUserService,
+  loginUserService,
+} = require("../services/authService");
 
 const registerUser = async (req, res) => {
   const { username, password } = req.body;
@@ -47,41 +47,15 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ username });
-
-    if (!user) {
-      return res.status(400).json({
-        message: "User not found",
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(400).json({
-        message: "Invalid credentials",
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        username: user.username,
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1h",
-      },
-    );
+    const token = await loginUserService(username, password);
 
     res.json({
       message: "Login successful",
       token,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Error logging in",
+    res.status(400).json({
+      message: error.message,
     });
   }
 };
