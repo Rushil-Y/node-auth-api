@@ -1,12 +1,12 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
+const { registerUserService } = require("../services/authService");
 
 const registerUser = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Validate input before hashing
     if (!username || !password) {
       return res.status(400).json({
         message: "Username and password are required",
@@ -25,23 +25,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ username });
-
-    if (existingUser) {
-      return res.status(400).json({
-        message: "Username already exists",
-      });
-    }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Store user in MongoDB
-    await User.create({
-      username,
-      password: hashedPassword,
-    });
+    await registerUserService(username, password);
 
     res.json({
       message: "User registered Successfully",
@@ -73,28 +57,28 @@ const loginUser = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
 
-    if (isMatch) {
-      const token = jwt.sign(
-        {
-          userId: user._id,
-          username: user.username,
-          role: user.roles,
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "1h",
-        },
-      );
-
-      res.json({
-        message: "Login successful",
-        token,
-      });
-    } else {
-      res.status(400).json({
+    if (!isMatch) {
+      return res.status(400).json({
         message: "Invalid credentials",
       });
     }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        username: user.username,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      },
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+    });
   } catch (error) {
     res.status(500).json({
       message: "Error logging in",
